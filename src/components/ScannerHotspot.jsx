@@ -31,7 +31,8 @@ const ScannerHotspot = ({ imageUrl, parts, onPartSelect }) => {
             aria-label={`Learn more about ${part.name}`}
           >
             <div className="hotspot-marker"></div>
-            <span className="hotspot-label">{part.name}</span>
+            {/* Always visible label on the right */}
+            <span className="hotspot-label always-visible">{part.name}</span>
           </button>
         ))}
       </motion.div>

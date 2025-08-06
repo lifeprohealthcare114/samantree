@@ -1,22 +1,10 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
 import '../styles/globle.css';
-
-const Footer = () => {
+function Footer() {
   return (
-    <footer>
-      <div className="container">
-        <div className="footer-links">
-          <Link to="/privacy">Privacy Policy</Link>
-          <Link to="/terms">Terms of Use</Link>
-          <Link to="/contact">Contact Us</Link>
-        </div>
-        <div className="copyright">
-          © {new Date().getFullYear()} SamanTree Medical SA. All rights reserved.
-        </div>
-      </div>
+    <footer className="footer">
+      © {new Date().getFullYear()} Lifepro Healthcare. All rights reserved.
     </footer>
   );
-};
+}
 
 export default Footer;

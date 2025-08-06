@@ -3,7 +3,7 @@ import Home from './pages/Home';
 import ProductFeatures from './pages/ProductFeatures';
 import Header from './components/Header';
 import AudioPlayer from './components/AudioPlayer';
-// import Footer from './components/Footer';
+import Footer from './components/Footer';
 import './styles/globle.css';
 
 function App() {
@@ -16,7 +16,7 @@ function App() {
           <Route path="/features" element={<ProductFeatures />} />
            
         </Routes>
-        {/* <Footer /> */}
+        <Footer /> 
       </div>
        <AudioPlayer />
     </Router>

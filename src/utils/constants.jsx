@@ -10,7 +10,7 @@ export const scannerParts = [
       'Annotation and reporting tools'
     ],
     image: '/assets/images/scanner-closeup.jpg',
-    position: { x: 55, y: 30 }
+    position: { x: 55, y: 25 }
   },
   {
     id: 2,

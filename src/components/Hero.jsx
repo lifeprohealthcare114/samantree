@@ -1,15 +1,34 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import '../styles/globle.css';
 
 const Hero = () => {
+  const navigate = useNavigate();
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    const handleVideoEnd = () => {
+      navigate('/features');
+    };
+
+    videoElement.addEventListener('ended', handleVideoEnd);
+
+    return () => {
+      videoElement.removeEventListener('ended', handleVideoEnd);
+    };
+  }, [navigate]);
+
   return (
     <section className="hero">
-      {/* Video Background */}
+   
       <div className="video-container">
-        <video 
-          autoPlay 
-          loop 
-          muted 
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
           playsInline
           className="background-video"
         >
@@ -19,10 +38,11 @@ const Hero = () => {
         <div className="video-overlay"></div>
       </div>
 
-      {/* Hero Content */}
       <div className="hero-content">
         <div className="container">
-          <h1 className="product-name">Histolog<sup>®</sup> Scanner</h1>
+          <h1 className="product-name">
+            Histolog<sup>®</sup> Scanner
+          </h1>
           <p className="product-tagline">Cancer cells at your fingertips</p>
           <div className="product-line"></div>
           <p className="product-description">

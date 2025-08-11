@@ -10,7 +10,9 @@ export const scannerParts = [
       'Annotation and reporting tools'
     ],
     image: '/assets/images/scanner-closeup.jpg',
-    position: { x: 55, y: 25 }
+    position: { x: 55, y: 25 },
+    labelPosition: { x: 60, y: -20 }, // label positioned slightly to the right
+    labelLeft: false  // Label aligned to the right side
   },
   {
     id: 2,
@@ -23,7 +25,9 @@ export const scannerParts = [
       'Compatible with fresh tissue'
     ],
     image: '/assets/images/scanner-front.jpg',
-    position: { x: 51, y: 39 }
+    position: { x: 51, y: 39 },
+    labelPosition: { x: 56, y: -20 }, // label positioned to the right of hotspot
+    labelLeft: false
   },
   {
     id: 3,
@@ -36,9 +40,8 @@ export const scannerParts = [
       'Digital images for remote assessment'
     ],
     image: '/assets/images/scanner-angled.jpg',
-    position: { x: 45, y: 40 }
+    position: { x: 48, y: 40 },
+    labelPosition: { x: -80, y: -20 }, // label positioned slightly left of hotspot
+    labelLeft: true  // Label aligned to the left side
   }
 ];
-
-
-;

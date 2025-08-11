@@ -23,57 +23,59 @@ const ProductFeatures = () => {
   const [hotspotTourIndex, setHotspotTourIndex] = useState(0);
   const [isHotspotTourActive, setIsHotspotTourActive] = useState(false);
   const [manualScrollOverride, setManualScrollOverride] = useState(false);
+  const [isTourStopped, setIsTourStopped] = useState(false); // NEW state to track manual stopping
+
   const tourTimerRef = useRef(null);
   const hotspotTourTimerRef = useRef(null);
   const lastInteractionRef = useRef(Date.now());
   const inactivityTimerRef = useRef(null);
 
- const workflowSteps = React.useMemo(() => [
-  {
-    id: 1,
-    title: 'Excision',
-    description: 'Excise the tumor from the patient.',
-    detailedDescription:
-      'Surgical removal of the tumor tissue following standard breast conserving surgery protocols.',
-    icon: <FaCut />,
-    time: '',
-    color: '#e74c3c',
-    image: '/assets/images/step-excision.jpg'
-  },
-  {
-    id: 2,
-    title: 'Preparation',
-    description: 'Immerse in Histolog Dip and rinse in saline solution.',
-    detailedDescription:
-      'Quick 10-second specimen preparation using Histolog Dip fluorescent stain followed by saline rinse.',
-    icon: <FaFlask />,
-    time: '10 sec',
-    color: '#3498db',
-    image: '/assets/images/step-preparation.jpg'
-  },
-  {
-    id: 3,
-    title: 'Imaging',
-    description: 'Map the whole specimen surface in minutes.',
-    detailedDescription:
-      'Ultra-fast confocal microscopy captures high-resolution images of the entire specimen surface with 4.8cm × 3.6cm field of view.',
-    icon: <FaCamera />,
-    time: '~50 sec',
-    color: '#2ecc71',
-    image: '/assets/images/step-imaging.jpg'
-  },
-  {
-    id: 4,
-    title: 'Evaluation',
-    description: 'Assess images on the device or remotely while preserving the specimen.',
-    detailedDescription:
-      'Real-time morphology analysis enables immediate decision-making while preserving tissue integrity for downstream testing.',
-    icon: <FaEye />,
-    time: 'Real-time',
-    color: '#9b59b6',
-    image: '/assets/images/step-evaluation.jpg'
-  }
-], []);
+  const workflowSteps = React.useMemo(() => [
+    {
+      id: 1,
+      title: 'Excision',
+      description: 'Excise the tumor from the patient.',
+      detailedDescription:
+        'Surgical removal of the tumor tissue following standard breast conserving surgery protocols.',
+      icon: <FaCut />,
+      time: '',
+      color: '#e74c3c',
+      image: '/assets/images/step-excision.jpg'
+    },
+    {
+      id: 2,
+      title: 'Preparation',
+      description: 'Immerse in Histolog Dip and rinse in saline solution.',
+      detailedDescription:
+        'Quick 10-second specimen preparation using Histolog Dip fluorescent stain followed by saline rinse.',
+      icon: <FaFlask />,
+      time: '10 sec',
+      color: '#3498db',
+      image: '/assets/images/step-preparation.jpg'
+    },
+    {
+      id: 3,
+      title: 'Imaging',
+      description: 'Map the whole specimen surface in minutes.',
+      detailedDescription:
+        'Ultra-fast confocal microscopy captures high-resolution images of the entire specimen surface with 4.8cm × 3.6cm field of view.',
+      icon: <FaCamera />,
+      time: '~50 sec',
+      color: '#2ecc71',
+      image: '/assets/images/step-imaging.jpg'
+    },
+    {
+      id: 4,
+      title: 'Evaluation',
+      description: 'Assess images on the device or remotely while preserving the specimen.',
+      detailedDescription:
+        'Real-time morphology analysis enables immediate decision-making while preserving tissue integrity for downstream testing.',
+      icon: <FaEye />,
+      time: 'Real-time',
+      color: '#9b59b6',
+      image: '/assets/images/step-evaluation.jpg'
+    }
+  ], []);
 
   const getFeatureTagsForStep = (stepId) => {
     const features = {
@@ -119,14 +121,13 @@ const ProductFeatures = () => {
     });
   }, [manualScrollOverride]);
 
-
   const runScrollSequence = useCallback(() => {
     const scrollDown = () =>
       new Promise((resolve) => {
         const startY = window.pageYOffset;
         const endY = document.body.scrollHeight - window.innerHeight;
         const distance = endY - startY;
-        const duration = Math.min(6000, Math.max(3000, distance * 2.5)); 
+        const duration = Math.min(6000, Math.max(3000, distance * 2.5));
 
         let startTime = null;
 
@@ -173,17 +174,16 @@ const ProductFeatures = () => {
       });
 
     return (async () => {
-      await new Promise((res) => setTimeout(res, 2000)); 
+      await new Promise((res) => setTimeout(res, 2000));
       await scrollDown();
-      await new Promise((res) => setTimeout(res, 9000)); 
+      await new Promise((res) => setTimeout(res, 9000));
       await scrollUp();
-      await new Promise((res) => setTimeout(res, 1000)); 
+      await new Promise((res) => setTimeout(res, 1000));
     })();
   }, []);
 
- 
   const runTourStep = useCallback(async () => {
-    if (!isTourActive || isTourPaused) return;
+    if (!isTourActive || isTourPaused || isTourStopped) return;
 
     const currentStep = workflowSteps[tourIndex];
     if (!currentStep) return;
@@ -195,23 +195,22 @@ const ProductFeatures = () => {
       stepElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    await new Promise((res) => setTimeout(res, 1000)); 
+    await new Promise((res) => setTimeout(res, 1000));
 
     await autoScrollModal();
 
     const readingTime = estimateReadingTime(currentStep);
 
     tourTimerRef.current = setTimeout(async () => {
-      if (isTourPaused) return;
+      if (isTourPaused || isTourStopped) return;
 
       const isLastStep = tourIndex === workflowSteps.length - 1;
       if (!isLastStep) {
-        await new Promise((r) => setTimeout(r, 3000)); 
-        if (!isTourPaused) {
+        await new Promise((r) => setTimeout(r, 3000));
+        if (!isTourPaused && !isTourStopped) {
           setTourIndex((i) => i + 1);
         }
       } else {
-      
         await runScrollSequence();
         setIsTourActive(false);
         setActiveStep(1);
@@ -219,18 +218,18 @@ const ProductFeatures = () => {
         window.location.href = '/';
       }
     }, readingTime);
-  }, [isTourActive, isTourPaused, tourIndex, workflowSteps, autoScrollModal, estimateReadingTime, runScrollSequence]);
+  }, [isTourActive, isTourPaused, isTourStopped, tourIndex, workflowSteps, autoScrollModal, estimateReadingTime, runScrollSequence]);
 
   useEffect(() => {
     clearTimeout(tourTimerRef.current);
-    if (isTourActive && !isTourPaused) {
+    if (isTourActive && !isTourPaused && !isTourStopped) {
       runTourStep();
     }
-  }, [isTourActive, isTourPaused, tourIndex, runTourStep]);
+  }, [isTourActive, isTourPaused, isTourStopped, tourIndex, runTourStep]);
 
   useEffect(() => {
-    if (!isTourActive || isTourPaused || isHotspotTourActive) {
-      return; 
+    if (!isTourActive || isTourPaused || isHotspotTourActive || isTourStopped) {
+      return;
     }
 
     const stepCount = workflowSteps.length;
@@ -245,30 +244,33 @@ const ProductFeatures = () => {
     }, 6000);
 
     return () => clearInterval(intervalId);
-  }, [isTourActive, isTourPaused, isHotspotTourActive, workflowSteps.length]);
+  }, [isTourActive, isTourPaused, isHotspotTourActive, isTourStopped, workflowSteps.length]);
 
-  
   useEffect(() => {
-    
+    // On initial mount start hotspot tour after 6s unless stopped
+    if (isTourStopped) return;
+
     const timer = setTimeout(() => {
       setIsHotspotTourActive(true);
       setHotspotTourIndex(0);
     }, 6000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [isTourStopped]);
 
   useEffect(() => {
+    if (isTourStopped) return; // Added guard
+
     if (!isHotspotTourActive) return;
 
     if (hotspotTourIndex >= scannerParts.length) {
-      
       if (selectedPart !== null) {
         setSelectedPart(null);
         setTimeout(() => {
+          if (isTourStopped) return; // guard
           setIsHotspotTourActive(false);
           setHotspotTourIndex(0);
-          setIsTourActive(true);  
+          setIsTourActive(true);
           setTourIndex(0);
           setActiveStep(1);
         }, 1000);
@@ -282,7 +284,6 @@ const ProductFeatures = () => {
       return;
     }
 
-
     const part = scannerParts[hotspotTourIndex];
     setSelectedPart(part);
 
@@ -294,14 +295,15 @@ const ProductFeatures = () => {
       setIsTourPaused(false);
       setManualScrollOverride(false);
       setHotspotTourIndex((i) => i + 1);
-    }, 8000); 
+    }, 8000);
 
     return () => clearTimeout(hotspotTourTimerRef.current);
-  }, [hotspotTourIndex, isHotspotTourActive, selectedPart]);
+  }, [hotspotTourIndex, isHotspotTourActive, selectedPart, isTourStopped]);
 
- 
   const handlePartModalClose = () => {
     setSelectedPart(null);
+    if (isTourStopped) return; // Prevent further changes if stopped
+
     if (isHotspotTourActive) {
       setIsTourPaused(false);
       setManualScrollOverride(false);
@@ -314,7 +316,6 @@ const ProductFeatures = () => {
       }, 1000);
     }
   };
-
 
   useEffect(() => {
     const resetTimer = () => {
@@ -343,80 +344,59 @@ const ProductFeatures = () => {
 
   return (
     <div className="product-features">
-
-      <div
-        className="tour-controls-permanent"
-        style={{
-          position: 'fixed',
-          top: 85,
-          right: 0,
-          zIndex: 10000,
-          background: 'rgba(0,0,0,0.85)',
-          padding: '10px 15px',
-          borderRadius: 8,
-          display: 'flex',
-          gap: 10,
-          alignItems: 'center',
-        }}
-      >
-    <button
-  onClick={() => {
-    clearTimeout(tourTimerRef.current);
-    clearTimeout(hotspotTourTimerRef.current);
-    setIsTourActive(false);
-    setIsTourPaused(false);
-    setIsHotspotTourActive(false);
-    setTourIndex(0);
-    setHotspotTourIndex(0);
-    setActiveStep(1);
-    setSelectedPart(null);
-    setManualScrollOverride(false);
-  }}
-  disabled={!isTourActive} // Disable when tour not active
-  style={{
-    backgroundColor: '#e74c3c',
-    color: 'white',
-    border: 'none',
-    padding: '8px 12px',
-    borderRadius: 5,
-    cursor: isTourActive ? 'pointer' : 'not-allowed', // Change cursor accordingly
-    opacity: isTourActive ? 1 : 0.6, // Visual disable effect
-  }}
->
-  ■ Stop Tour
-</button>
+      <div className="tour-controls-permanent">
+        <button
+          className={`tour-btn stop-btn ${!isTourActive && !isHotspotTourActive ? 'disabled' : ''}`}
+          onClick={() => {
+            // Clear timers
+            clearTimeout(tourTimerRef.current);
+            clearTimeout(hotspotTourTimerRef.current);
+            // Set stop state to true to block effects
+            setIsTourStopped(true);
+            // Reset all tour states
+            setIsTourActive(false);
+            setIsTourPaused(false);
+            setIsHotspotTourActive(false);
+            setTourIndex(0);
+            setHotspotTourIndex(0);
+            setActiveStep(1);
+            setSelectedPart(null);
+            setManualScrollOverride(false);
+          }}
+          disabled={!isTourActive && !isHotspotTourActive}
+          aria-label="Stop Tour"
+          type="button"
+        >
+          ■ Stop Tour
+        </button>
 
         <button
+          className="tour-btn restart-btn"
           onClick={() => {
             clearTimeout(tourTimerRef.current);
             clearTimeout(hotspotTourTimerRef.current);
+            // Reset stop flag and restart
+            setIsTourStopped(false);
             setIsTourActive(false);
             setIsTourPaused(false);
-            setIsHotspotTourActive(true);  
+            setIsHotspotTourActive(true);
             setTourIndex(0);
             setHotspotTourIndex(0);
             setActiveStep(1);
             setSelectedPart(null);
             setManualScrollOverride(false);
 
-         
-            const container = document.querySelector('.workflow-section'); 
+            const container = document.querySelector('.workflow-section');
             if (container) {
               container.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }}
-          style={{
-            backgroundColor: '#2ecc71',
-            color: 'white',
-            border: 'none',
-            padding: '8px 12px',
-            borderRadius: 5,
-            cursor: 'pointer'
-          }}
+          aria-label="Restart Tour"
+          type="button"
         >
-         🔄 Restart Tour
+          🔄 Restart Tour
         </button>
       </div>
 
@@ -425,7 +405,6 @@ const ProductFeatures = () => {
           Histolog® Scanner Features
         </motion.h1>
 
-       
         <motion.div
           className="scanner-zoom-wrapper"
           initial={{ scale: 1 }}
@@ -443,7 +422,6 @@ const ProductFeatures = () => {
           />
         </motion.div>
 
-      
         <motion.div
           className="workflow-section"
           initial={{ opacity: 0, y: 30 }}
@@ -456,7 +434,6 @@ const ProductFeatures = () => {
           </div>
 
           <div className="workflow-container">
-       
             <div className="timeline-progress">
               <div className="progress-line">
                 <motion.div

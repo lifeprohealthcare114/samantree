@@ -16,6 +16,7 @@ const ScannerHotspot = ({ imageUrl, parts, onPartSelect }) => {
           repeatType: 'loop',
           ease: 'easeInOut'
         }}
+        style={{ position: 'relative' }}
       >
         <img src={imageUrl} alt="Histolog Scanner" className="scanner-image" />
 
@@ -24,6 +25,7 @@ const ScannerHotspot = ({ imageUrl, parts, onPartSelect }) => {
             key={part.id}
             className="hotspot"
             style={{
+              position: 'absolute',
               left: `${part.position.x}%`,
               top: `${part.position.y}%`,
             }}
@@ -31,8 +33,21 @@ const ScannerHotspot = ({ imageUrl, parts, onPartSelect }) => {
             aria-label={`Learn more about ${part.name}`}
           >
             <div className="hotspot-marker"></div>
-            {/* Always visible label on the right */}
-            <span className="hotspot-label always-visible">{part.name}</span>
+
+            {/* Label positioned separately using labelPosition */}
+            <span
+              className="hotspot-label always-visible"
+              style={{
+                position: 'absolute',
+                left: `${part.labelPosition ? part.labelPosition.x : part.position.x}%`,
+                top: `${part.labelPosition ? part.labelPosition.y : part.position.y}%`,
+                transform: part.labelLeft ? 'translateX(-100%)' : 'translateX(0)',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none' // Ensure label does not block hotspot button clicks
+              }}
+            >
+              {part.name}
+            </span>
           </button>
         ))}
       </motion.div>

@@ -9,7 +9,7 @@ export const scannerParts = [
       'Instant access to imaging controls',
       'Annotation and reporting tools'
     ],
-    image: '/assets/images/scanner-closeup.jpg',
+    image: '/assets/images/scanner-closeup.webp',
     position: { x: 55, y: 25 },
     labelPosition: { x: 60, y: -20 }, 
     labelLeft: false 
@@ -24,7 +24,7 @@ export const scannerParts = [
       'Non-destructive scanning',
       'Compatible with fresh tissue'
     ],
-    image: '/assets/images/scanner-front.jpg',
+    image: '/assets/images/scanner-front.webp',
     position: { x: 51, y: 39 },
     labelPosition: { x: 56, y: -20 }, 
     labelLeft: false
@@ -39,7 +39,7 @@ export const scannerParts = [
       '50s imaging time per surface',
       'Digital images for remote assessment'
     ],
-    image: '/assets/images/scanner-angled.jpg',
+    image: '/assets/images/scanner-front.webp',
     position: { x: 48, y: 40 },
     labelPosition: { x: -80, y: -20 }, 
     labelLeft: true  

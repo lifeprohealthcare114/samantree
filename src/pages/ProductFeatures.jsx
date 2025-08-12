@@ -23,7 +23,7 @@ const ProductFeatures = () => {
   const [hotspotTourIndex, setHotspotTourIndex] = useState(0);
   const [isHotspotTourActive, setIsHotspotTourActive] = useState(false);
   const [manualScrollOverride, setManualScrollOverride] = useState(false);
-  const [isTourStopped, setIsTourStopped] = useState(false); // NEW state to track manual stopping
+  const [isTourStopped, setIsTourStopped] = useState(false); 
 
   const tourTimerRef = useRef(null);
   const hotspotTourTimerRef = useRef(null);
@@ -247,7 +247,7 @@ const ProductFeatures = () => {
   }, [isTourActive, isTourPaused, isHotspotTourActive, isTourStopped, workflowSteps.length]);
 
   useEffect(() => {
-    // On initial mount start hotspot tour after 6s unless stopped
+    // On initial mount start hotspot tour after 6s delay
     if (isTourStopped) return;
 
     const timer = setTimeout(() => {
@@ -259,7 +259,7 @@ const ProductFeatures = () => {
   }, [isTourStopped]);
 
   useEffect(() => {
-    if (isTourStopped) return; // Added guard
+    if (isTourStopped) return; 
 
     if (!isHotspotTourActive) return;
 
@@ -267,7 +267,7 @@ const ProductFeatures = () => {
       if (selectedPart !== null) {
         setSelectedPart(null);
         setTimeout(() => {
-          if (isTourStopped) return; // guard
+          if (isTourStopped) return; 
           setIsHotspotTourActive(false);
           setHotspotTourIndex(0);
           setIsTourActive(true);
@@ -302,7 +302,7 @@ const ProductFeatures = () => {
 
   const handlePartModalClose = () => {
     setSelectedPart(null);
-    if (isTourStopped) return; // Prevent further changes if stopped
+    if (isTourStopped) return; 
 
     if (isHotspotTourActive) {
       setIsTourPaused(false);
@@ -348,12 +348,10 @@ const ProductFeatures = () => {
         <button
           className={`tour-btn stop-btn ${!isTourActive && !isHotspotTourActive ? 'disabled' : ''}`}
           onClick={() => {
-            // Clear timers
+
             clearTimeout(tourTimerRef.current);
             clearTimeout(hotspotTourTimerRef.current);
-            // Set stop state to true to block effects
             setIsTourStopped(true);
-            // Reset all tour states
             setIsTourActive(false);
             setIsTourPaused(false);
             setIsHotspotTourActive(false);
@@ -375,7 +373,6 @@ const ProductFeatures = () => {
           onClick={() => {
             clearTimeout(tourTimerRef.current);
             clearTimeout(hotspotTourTimerRef.current);
-            // Reset stop flag and restart
             setIsTourStopped(false);
             setIsTourActive(false);
             setIsTourPaused(false);

@@ -5,7 +5,7 @@ import '../styles/globle.css';
 const ScannerHotspot = ({ imageUrl, parts, onPartSelect }) => {
   return (
     <div className="scanner-hotspot-container">
-      {/* Zoom wrapper for image + hotspots */}
+  
       <motion.div
         className="scanner-zoom-content"
         initial={{ scale: 1 }}
@@ -34,7 +34,6 @@ const ScannerHotspot = ({ imageUrl, parts, onPartSelect }) => {
           >
             <div className="hotspot-marker"></div>
 
-            {/* Label positioned separately using labelPosition */}
             <span
               className="hotspot-label always-visible"
               style={{
@@ -43,7 +42,7 @@ const ScannerHotspot = ({ imageUrl, parts, onPartSelect }) => {
                 top: `${part.labelPosition ? part.labelPosition.y : part.position.y}%`,
                 transform: part.labelLeft ? 'translateX(-100%)' : 'translateX(0)',
                 whiteSpace: 'nowrap',
-                pointerEvents: 'none' // Ensure label does not block hotspot button clicks
+                pointerEvents: 'none' 
               }}
             >
               {part.name}

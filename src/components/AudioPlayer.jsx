@@ -1,6 +1,6 @@
 // src/components/AudioPlayer/AudioPlayer.js
 import React, { useState, useEffect, useRef } from 'react';
-import backgroundMusic from '.././assets/audio/background-music.mp3'; // Updated import path
+import backgroundMusic from '.././assets/audio/background-music.mp3'; 
 import { FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 import './AudioPlayer.css';
 
@@ -9,24 +9,20 @@ const AudioPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
-  // Initialize audio settings
   useEffect(() => {
     audioRef.current = new Audio(backgroundMusic);
     const audio = audioRef.current;
     audio.loop = true;
-    audio.volume = 0.3; // 30% volume
+    audio.volume = 0.3; 
 
-    // Cleanup on unmount
     return () => {
       audio.pause();
-      // Removed the undefined handleEnded reference
       if (audioRef.current) {
-        audioRef.current.src = ''; // Clean up audio object
+        audioRef.current.src = ''; 
       }
     };
   }, []);
 
-  // Handle first user interaction
   useEffect(() => {
     const handleFirstInteraction = () => {
       setHasInteracted(true);
@@ -43,7 +39,6 @@ const AudioPlayer = () => {
     };
   }, []);
 
-  // Handle play/pause when hasInteracted changes
   useEffect(() => {
     if (hasInteracted && isPlaying) {
       audioRef.current.play().catch(error => {

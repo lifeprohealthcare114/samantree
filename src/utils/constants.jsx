@@ -11,8 +11,8 @@ export const scannerParts = [
     ],
     image: '/assets/images/scanner-closeup.jpg',
     position: { x: 55, y: 25 },
-    labelPosition: { x: 60, y: -20 }, // label positioned slightly to the right
-    labelLeft: false  // Label aligned to the right side
+    labelPosition: { x: 60, y: -20 }, 
+    labelLeft: false 
   },
   {
     id: 2,
@@ -26,7 +26,7 @@ export const scannerParts = [
     ],
     image: '/assets/images/scanner-front.jpg',
     position: { x: 51, y: 39 },
-    labelPosition: { x: 56, y: -20 }, // label positioned to the right of hotspot
+    labelPosition: { x: 56, y: -20 }, 
     labelLeft: false
   },
   {
@@ -41,7 +41,8 @@ export const scannerParts = [
     ],
     image: '/assets/images/scanner-angled.jpg',
     position: { x: 48, y: 40 },
-    labelPosition: { x: -80, y: -20 }, // label positioned slightly left of hotspot
-    labelLeft: true  // Label aligned to the left side
+    labelPosition: { x: -80, y: -20 }, 
+    labelLeft: true  
   }
 ];
+ 

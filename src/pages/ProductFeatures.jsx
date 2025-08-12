@@ -15,21 +15,25 @@ import { scannerParts } from '../utils/constants';
 import '../styles/globle.css';
 
 const ProductFeatures = () => {
+  // States
   const [selectedPart, setSelectedPart] = useState(null);
   const [activeStep, setActiveStep] = useState(1);
   const [isTourActive, setIsTourActive] = useState(false);
   const [isTourPaused, setIsTourPaused] = useState(false);
   const [tourIndex, setTourIndex] = useState(0);
-  const [hotspotTourIndex, setHotspotTourIndex] = useState(0);
-  const [isHotspotTourActive, setIsHotspotTourActive] = useState(false);
-  const [manualScrollOverride, setManualScrollOverride] = useState(false);
-  const [isTourStopped, setIsTourStopped] = useState(false); 
+  const [, setManualScrollOverride] = useState(false);
+  const [isTourStopped, setIsTourStopped] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const [, setScrollSequenceActive] = useState(false);
+  const [isScrollingWorkflow, setIsScrollingWorkflow] = useState(false);
 
-  const tourTimerRef = useRef(null);
-  const hotspotTourTimerRef = useRef(null);
-  const lastInteractionRef = useRef(Date.now());
+  // Refs
+  const timerRef = useRef(null);
   const inactivityTimerRef = useRef(null);
+  const lastInteractionRef = useRef(Date.now());
+  const isRestartingRef = useRef(false);
 
+  // Workflow Steps Data
   const workflowSteps = React.useMemo(() => [
     {
       id: 1,
@@ -77,6 +81,11 @@ const ProductFeatures = () => {
     }
   ], []);
 
+  // Limit hotspot modals to max 3
+  const totalHotspotSteps = Math.min(3, scannerParts.length);
+  const totalWorkflowSteps = workflowSteps.length;
+
+  // Feature tags function
   const getFeatureTagsForStep = (stepId) => {
     const features = {
       1: ['Standard BCS Protocol'],
@@ -87,243 +96,195 @@ const ProductFeatures = () => {
     return features[stepId] || [];
   };
 
-  const estimateReadingTime = useCallback((step) => {
-    const baseTime = 3000;
-    const descriptionLength = (step.description + step.detailedDescription).length;
-    const featureTagsCount = getFeatureTagsForStep(step.id).length;
-    const readingTime = (descriptionLength / 10) * 100 + featureTagsCount * 1000 + baseTime;
-    return Math.min(15000, Math.max(4000, readingTime));
-  }, []);
-
-  const autoScrollModal = useCallback(() => {
+  // Smooth scroll helper
+  const smoothScrollTo = (targetY, duration = 3000) => {
     return new Promise((resolve) => {
-      const modalContent = document.querySelector('.workflow-step.active');
-      if (!modalContent || manualScrollOverride) {
-        return resolve();
-      }
-      const scrollHeight = modalContent.scrollHeight;
-      const clientHeight = modalContent.clientHeight;
-      if (scrollHeight <= clientHeight) {
-        return resolve();
-      }
-      const totalScroll = scrollHeight - clientHeight;
-      const step = 1;
-      let scrolled = 0;
-      const interval = setInterval(() => {
-        if (scrolled >= totalScroll) {
-          clearInterval(interval);
-          resolve();
+      const startY = window.pageYOffset;
+      const distance = targetY - startY;
+      let startTime = null;
+
+      function animation(currentTime) {
+        if (!startTime) startTime = currentTime;
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeInOutQuad =
+          progress < 0.5
+            ? 2 * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        window.scrollTo(0, startY + distance * easeInOutQuad);
+        if (progress < 1) {
+          requestAnimationFrame(animation);
         } else {
-          modalContent.scrollTop += step;
-          scrolled += step;
+          resolve();
         }
-      }, 20);
+      }
+
+      requestAnimationFrame(animation);
     });
-  }, [manualScrollOverride]);
+  };
 
-  const runScrollSequence = useCallback(() => {
-    const scrollDown = () =>
-      new Promise((resolve) => {
-        const startY = window.pageYOffset;
-        const endY = document.body.scrollHeight - window.innerHeight;
-        const distance = endY - startY;
-        const duration = Math.min(6000, Math.max(3000, distance * 2.5));
-
-        let startTime = null;
-
-        const animation = (currentTime) => {
-          if (!startTime) startTime = currentTime;
-          const elapsed = currentTime - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          const easeInOutQuad = progress < 0.5
-            ? 2 * progress * progress
-            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-          window.scrollTo(0, startY + distance * easeInOutQuad);
-          if (progress < 1) {
-            requestAnimationFrame(animation);
-          } else {
-            resolve();
-          }
-        };
-
-        requestAnimationFrame(animation);
-      });
-
-    const scrollUp = () =>
-      new Promise((resolve) => {
-        const startY = window.pageYOffset;
-        const duration = 3000;
-        let startTime = null;
-
-        const animation = (currentTime) => {
-          if (!startTime) startTime = currentTime;
-          const elapsed = currentTime - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          const easeInOutQuad = progress < 0.5
-            ? 2 * progress * progress
-            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-          window.scrollTo(0, startY * (1 - easeInOutQuad));
-          if (progress < 1) {
-            requestAnimationFrame(animation);
-          } else {
-            resolve();
-          }
-        };
-
-        requestAnimationFrame(animation);
-      });
-
-    return (async () => {
-      await new Promise((res) => setTimeout(res, 2000));
-      await scrollDown();
-      await new Promise((res) => setTimeout(res, 9000));
-      await scrollUp();
-      await new Promise((res) => setTimeout(res, 1000));
-    })();
+  // Scroll helpers
+  const scrollToWorkflowSection = useCallback(async () => {
+    const el = document.querySelector('.workflow-section');
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.pageYOffset - 50;
+    await smoothScrollTo(top, 4000);
   }, []);
 
+  const scrollToBottom = useCallback(async () => {
+    const bottom = document.body.scrollHeight - window.innerHeight;
+    await smoothScrollTo(bottom, 7000);
+  }, []);
+
+  const scrollToTop = useCallback(async () => {
+    await smoothScrollTo(0, 4000);
+  }, []);
+
+  // Unified tour runner
   const runTourStep = useCallback(async () => {
-    if (!isTourActive || isTourPaused || isTourStopped) return;
+    if (!isTourActive || isTourPaused || isTourStopped || isRestartingRef.current) return;
 
-    const currentStep = workflowSteps[tourIndex];
-    if (!currentStep) return;
+    clearTimeout(timerRef.current);
 
-    setActiveStep(currentStep.id);
+    // Hotspot modals (each shows 6s + 3s delay between)
+    if (tourIndex < totalHotspotSteps) {
+      const part = scannerParts[tourIndex];
+      setSelectedPart(part);
+      setManualScrollOverride(true);
 
-    const stepElement = document.querySelector(`.workflow-step:nth-child(${tourIndex + 1})`);
-    if (stepElement) {
-      stepElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      timerRef.current = setTimeout(() => {
+        setSelectedPart(null);
+        setManualScrollOverride(false);
+        if (!isTourStopped && !isRestartingRef.current) {
+          timerRef.current = setTimeout(() => {
+            setTourIndex((prev) => prev + 1);
+          }, 3000);
+        }
+      }, 6000);
+      return;
     }
 
-    await new Promise((res) => setTimeout(res, 1000));
+    // Scroll to workflow section after hotspot modals
+    if (tourIndex === totalHotspotSteps && !isScrollingWorkflow) {
+      setIsScrollingWorkflow(true);
+      await scrollToWorkflowSection();
+      setIsScrollingWorkflow(false);
+      setTourIndex((prev) => prev + 1);
+      setActiveStep(1);
+      return;
+    }
 
-    await autoScrollModal();
+    // Workflow steps display with auto scroll & timing
+    const workflowStepIndex = tourIndex - totalHotspotSteps - 1;
+    if (workflowStepIndex >= 0 && workflowStepIndex < totalWorkflowSteps) {
+      const currentStep = workflowSteps[workflowStepIndex];
+      if (!currentStep) return;
 
-    const readingTime = estimateReadingTime(currentStep);
+      setActiveStep(currentStep.id);
 
-    tourTimerRef.current = setTimeout(async () => {
-      if (isTourPaused || isTourStopped) return;
-
-      const isLastStep = tourIndex === workflowSteps.length - 1;
-      if (!isLastStep) {
-        await new Promise((r) => setTimeout(r, 3000));
-        if (!isTourPaused && !isTourStopped) {
-          setTourIndex((i) => i + 1);
-        }
-      } else {
-        await runScrollSequence();
-        setIsTourActive(false);
-        setActiveStep(1);
-        setTourIndex(0);
-        window.location.href = '/';
+      const stepElement = document.querySelector(
+        `.workflow-step:nth-child(${workflowStepIndex + 1})`
+      );
+      if (stepElement) {
+        stepElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-    }, readingTime);
-  }, [isTourActive, isTourPaused, isTourStopped, tourIndex, workflowSteps, autoScrollModal, estimateReadingTime, runScrollSequence]);
 
+      timerRef.current = setTimeout(() => {
+        if (isTourPaused || isTourStopped || isRestartingRef.current) return;
+
+        const isLastStep = workflowStepIndex === totalWorkflowSteps - 1;
+        if (!isLastStep) {
+          setTourIndex((prev) => prev + 1);
+        } else {
+          (async () => {
+            setScrollSequenceActive(true);
+
+            await scrollToBottom();
+
+            if (isTourStopped || isRestartingRef.current) return;
+
+            // Highlight 6 cards sequentially for 2 seconds each (total 12 seconds)
+            for (let i = 1; i <= 6; i++) {
+              if (isTourStopped || isRestartingRef.current) return;
+              setActiveStep(i);
+              await new Promise((r) => setTimeout(r, 2000));
+            }
+
+            if (isTourStopped || isRestartingRef.current) return;
+
+            await scrollToTop();
+
+            if (isTourStopped || isRestartingRef.current) return;
+
+            setScrollSequenceActive(false);
+            setIsTourActive(false);
+            setActiveStep(1);
+            setTourIndex(0);
+
+            if (!(isTourStopped || isRestartingRef.current)) {
+              window.location.href = '/';
+            }
+          })();
+        }
+      }, 5000);
+      return;
+    }
+  }, [
+    isTourActive,
+    isTourPaused,
+    isTourStopped,
+    tourIndex,
+    workflowSteps,
+    scrollToWorkflowSection,
+    scrollToBottom,
+    scrollToTop,
+    totalHotspotSteps,
+    totalWorkflowSteps,
+    isScrollingWorkflow,
+  ]);
+
+  // Run tour step effect
   useEffect(() => {
-    clearTimeout(tourTimerRef.current);
-    if (isTourActive && !isTourPaused && !isTourStopped) {
+    if (isTourActive && !isTourPaused && !isTourStopped && !isRestartingRef.current) {
       runTourStep();
     }
+    return () => clearTimeout(timerRef.current);
   }, [isTourActive, isTourPaused, isTourStopped, tourIndex, runTourStep]);
 
+  // Timeline auto highlight when tour inactive
   useEffect(() => {
-    if (!isTourActive || isTourPaused || isHotspotTourActive || isTourStopped) {
-      return;
-    }
+    if (isTourActive || isTourPaused || isTourStopped || isRestarting) return;
 
-    const stepCount = workflowSteps.length;
-
-    const intervalId = setInterval(() => {
-      setActiveStep((prevStep) => {
-        if (prevStep >= stepCount) {
-          return 1;
-        }
-        return prevStep + 1;
+    const interval = setInterval(() => {
+      setActiveStep((prev) => {
+        if (prev >= totalWorkflowSteps) return 1;
+        return prev + 1;
       });
     }, 6000);
 
-    return () => clearInterval(intervalId);
-  }, [isTourActive, isTourPaused, isHotspotTourActive, isTourStopped, workflowSteps.length]);
+    return () => clearInterval(interval);
+  }, [isTourActive, isTourPaused, isTourStopped, isRestarting, totalWorkflowSteps]);
 
-  useEffect(() => {
-    // On initial mount start hotspot tour after 6s delay
-    if (isTourStopped) return;
-
-    const timer = setTimeout(() => {
-      setIsHotspotTourActive(true);
-      setHotspotTourIndex(0);
-    }, 6000);
-
-    return () => clearTimeout(timer);
-  }, [isTourStopped]);
-
-  useEffect(() => {
-    if (isTourStopped) return; 
-
-    if (!isHotspotTourActive) return;
-
-    if (hotspotTourIndex >= scannerParts.length) {
-      if (selectedPart !== null) {
-        setSelectedPart(null);
-        setTimeout(() => {
-          if (isTourStopped) return; 
-          setIsHotspotTourActive(false);
-          setHotspotTourIndex(0);
-          setIsTourActive(true);
-          setTourIndex(0);
-          setActiveStep(1);
-        }, 1000);
-      } else {
-        setIsHotspotTourActive(false);
-        setHotspotTourIndex(0);
-        setIsTourActive(true);
-        setTourIndex(0);
-        setActiveStep(1);
-      }
-      return;
-    }
-
-    const part = scannerParts[hotspotTourIndex];
-    setSelectedPart(part);
-
-    setIsTourPaused(true);
-    setManualScrollOverride(true);
-
-    hotspotTourTimerRef.current = setTimeout(() => {
-      setSelectedPart(null);
-      setIsTourPaused(false);
-      setManualScrollOverride(false);
-      setHotspotTourIndex((i) => i + 1);
-    }, 8000);
-
-    return () => clearTimeout(hotspotTourTimerRef.current);
-  }, [hotspotTourIndex, isHotspotTourActive, selectedPart, isTourStopped]);
-
+  // Modal close handler for hotspot modal
   const handlePartModalClose = () => {
     setSelectedPart(null);
-    if (isTourStopped) return; 
-
-    if (isHotspotTourActive) {
+    if (isTourStopped) return;
+    if (isTourPaused) {
       setIsTourPaused(false);
       setManualScrollOverride(false);
-      clearTimeout(hotspotTourTimerRef.current);
-      setTimeout(() => setHotspotTourIndex((i) => i + 1), 500);
-    } else if (isTourActive && isTourPaused) {
-      setTimeout(() => {
-        setIsTourPaused(false);
-        setManualScrollOverride(false);
-      }, 1000);
     }
   };
 
+  // Inactivity resets pause after 2 minutes
   useEffect(() => {
     const resetTimer = () => {
       lastInteractionRef.current = Date.now();
     };
-
     const checkInactivity = () => {
-      if (isTourPaused && Date.now() - lastInteractionRef.current > 2 * 60 * 1000) {
+      if (
+        isTourPaused &&
+        Date.now() - lastInteractionRef.current > 2 * 60 * 1000
+      ) {
         setIsTourPaused(false);
         setManualScrollOverride(false);
       }
@@ -332,6 +293,7 @@ const ProductFeatures = () => {
     document.addEventListener('mousemove', resetTimer);
     document.addEventListener('keydown', resetTimer);
     document.addEventListener('touchstart', resetTimer);
+
     inactivityTimerRef.current = setInterval(checkInactivity, 10000);
 
     return () => {
@@ -342,26 +304,70 @@ const ProductFeatures = () => {
     };
   }, [isTourPaused]);
 
+  // Start tour automatically 6 seconds after page load
+  useEffect(() => {
+    const startTimeout = setTimeout(() => {
+      setIsTourActive(true);
+      setTourIndex(0);
+      setIsTourStopped(false);
+    }, 6000);
+
+    return () => clearTimeout(startTimeout);
+  }, []);
+
+  // Restart button handler
+  const handleRestart = () => {
+    clearTimeout(timerRef.current);
+    clearInterval(inactivityTimerRef.current);
+
+    isRestartingRef.current = true;
+
+    setIsRestarting(true);
+    setIsTourStopped(false);
+    setIsTourActive(false);
+    setIsTourPaused(false);
+    setManualScrollOverride(false);
+    setScrollSequenceActive(false);
+    setIsScrollingWorkflow(false);
+    setTourIndex(0);
+    setActiveStep(1);
+    setSelectedPart(null);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    setTimeout(() => {
+      isRestartingRef.current = false;
+      setIsTourActive(true);
+      setIsRestarting(false);
+    }, 6000);
+  };
+
+  // Stop button handler
+  const handleStop = () => {
+    clearTimeout(timerRef.current);
+    clearInterval(inactivityTimerRef.current);
+
+    isRestartingRef.current = false;
+
+    setIsTourStopped(true);
+    setIsTourActive(false);
+    setIsTourPaused(false);
+    setManualScrollOverride(false);
+    setScrollSequenceActive(false);
+    setIsScrollingWorkflow(false);
+    setTourIndex(0);
+    setActiveStep(1);
+    setSelectedPart(null);
+    setIsRestarting(false);
+  };
+
   return (
     <div className="product-features">
       <div className="tour-controls-permanent">
         <button
-          className={`tour-btn stop-btn ${!isTourActive && !isHotspotTourActive ? 'disabled' : ''}`}
-          onClick={() => {
-
-            clearTimeout(tourTimerRef.current);
-            clearTimeout(hotspotTourTimerRef.current);
-            setIsTourStopped(true);
-            setIsTourActive(false);
-            setIsTourPaused(false);
-            setIsHotspotTourActive(false);
-            setTourIndex(0);
-            setHotspotTourIndex(0);
-            setActiveStep(1);
-            setSelectedPart(null);
-            setManualScrollOverride(false);
-          }}
-          disabled={!isTourActive && !isHotspotTourActive}
+          className={`tour-btn stop-btn ${!isTourActive ? 'disabled' : ''}`}
+          onClick={handleStop}
+          disabled={!isTourActive}
           aria-label="Stop Tour"
           type="button"
         >
@@ -370,26 +376,7 @@ const ProductFeatures = () => {
 
         <button
           className="tour-btn restart-btn"
-          onClick={() => {
-            clearTimeout(tourTimerRef.current);
-            clearTimeout(hotspotTourTimerRef.current);
-            setIsTourStopped(false);
-            setIsTourActive(false);
-            setIsTourPaused(false);
-            setIsHotspotTourActive(true);
-            setTourIndex(0);
-            setHotspotTourIndex(0);
-            setActiveStep(1);
-            setSelectedPart(null);
-            setManualScrollOverride(false);
-
-            const container = document.querySelector('.workflow-section');
-            if (container) {
-              container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-          }}
+          onClick={handleRestart}
           aria-label="Restart Tour"
           type="button"
         >
@@ -398,7 +385,11 @@ const ProductFeatures = () => {
       </div>
 
       <div className="container">
-        <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
           Histolog® Scanner Features
         </motion.h1>
 
@@ -406,7 +397,12 @@ const ProductFeatures = () => {
           className="scanner-zoom-wrapper"
           initial={{ scale: 1 }}
           animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 5, repeat: Infinity, repeatType: 'loop', ease: 'easeInOut' }}
+          transition={{
+            duration: 5,
+            repeat: Infinity,
+            repeatType: 'loop',
+            ease: 'easeInOut'
+          }}
         >
           <ScannerHotspot
             imageUrl="/assets/images/Histolog.jpg"
@@ -426,8 +422,10 @@ const ProductFeatures = () => {
           transition={{ duration: 0.8, delay: 0.4 }}
         >
           <div className="workflow-header">
-            <h2>4-Step Quick & Clean Procedure</h2>
-            <p className="workflow-subtitle">Complete specimen analysis in under 65 seconds</p>
+            <h2>4-Step Quick &amp; Clean Procedure</h2>
+            <p className="workflow-subtitle">
+              Complete specimen analysis in under 65 seconds
+            </p>
           </div>
 
           <div className="workflow-container">
@@ -436,7 +434,9 @@ const ProductFeatures = () => {
                 <motion.div
                   className="progress-fill"
                   initial={{ width: '0%' }}
-                  animate={{ width: `${(activeStep / workflowSteps.length) * 100}%` }}
+                  animate={{
+                    width: `${(activeStep / workflowSteps.length) * 100}%`
+                  }}
                   transition={{ duration: 0.5 }}
                 />
               </div>
@@ -444,9 +444,14 @@ const ProductFeatures = () => {
                 <div
                   key={step.id}
                   className={`timeline-dot ${activeStep >= step.id ? 'active' : ''}`}
-                  style={{ left: `${(idx / (workflowSteps.length - 1)) * 100}%` }}
+                  style={{
+                    left: `${(idx / (workflowSteps.length - 1)) * 100}%`
+                  }}
                 >
-                  <div className="dot-inner" style={{ backgroundColor: step.color }}>
+                  <div
+                    className="dot-inner"
+                    style={{ backgroundColor: step.color }}
+                  >
                     {step.icon}
                   </div>
                 </div>
@@ -457,12 +462,14 @@ const ProductFeatures = () => {
               {workflowSteps.map((step, idx) => (
                 <motion.div
                   key={step.id}
-                  className={`workflow-step ${activeStep === step.id ? 'active' : ''}`}
+                  className={`workflow-step ${
+                    activeStep === step.id ? 'active' : ''
+                  }`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.1, duration: 0.6 }}
                   onMouseEnter={() => {
-                    if (!isTourActive && !isHotspotTourActive) setActiveStep(step.id);
+                    if (!isTourActive) setActiveStep(step.id);
                   }}
                   onClick={() => {
                     if (!isTourPaused) setIsTourPaused(true);
@@ -473,12 +480,21 @@ const ProductFeatures = () => {
                   style={{
                     position: 'relative',
                     opacity: isTourActive && activeStep !== step.id ? 0.6 : 1,
-                    transform: isTourActive && activeStep === step.id ? 'scale(1.05)' : 'scale(1)',
+                    transform:
+                      isTourActive && activeStep === step.id
+                        ? 'scale(1.05)'
+                        : 'scale(1)',
                     transition: 'all 0.3s ease'
                   }}
                 >
                   <div className="step-visual">
-                    <div className="step-icon" style={{ backgroundColor: `${step.color}20`, borderColor: step.color }}>
+                    <div
+                      className="step-icon"
+                      style={{
+                        backgroundColor: `${step.color}20`,
+                        borderColor: step.color
+                      }}
+                    >
                       <div className="icon-wrapper" style={{ color: step.color }}>
                         {step.icon}
                       </div>
@@ -514,7 +530,9 @@ const ProductFeatures = () => {
 
                   <motion.div
                     className="step-glow"
-                    style={{ background: `radial-gradient(600px at center, ${step.color}15, transparent 70%)` }}
+                    style={{
+                      background: `radial-gradient(600px at center, ${step.color}15, transparent 70%)`
+                    }}
                     animate={{ opacity: activeStep === step.id ? 1 : 0 }}
                     transition={{ duration: 0.3 }}
                   />
@@ -522,7 +540,12 @@ const ProductFeatures = () => {
               ))}
             </div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.6 }} className="workflow-summary">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.6 }}
+              className="workflow-summary"
+            >
               <div className="summary-stat">
                 <div className="stat-value">≤65s</div>
                 <div className="stat-label">Total Processing Time</div>

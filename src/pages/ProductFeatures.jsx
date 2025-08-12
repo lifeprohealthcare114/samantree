@@ -371,7 +371,7 @@ const ProductFeatures = () => {
           aria-label="Stop Tour"
           type="button"
         >
-          ■ Stop Tour
+          ■ Stop
         </button>
 
         <button
@@ -380,7 +380,7 @@ const ProductFeatures = () => {
           aria-label="Restart Tour"
           type="button"
         >
-          🔄 Restart Tour
+          🔄 Restart
         </button>
       </div>
 

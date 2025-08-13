@@ -1153,7 +1153,7 @@ header nav ul li a:hover {
 /* Large Desktop (1200px+) */
 @media (min-width: 1200px) {
   .container {
-    width: 85%;
+    width: 100%;
   }
   
   .workflow-section .workflow-steps {
